@@ -1,3 +1,6 @@
+/*
+Wrappers around Zlog API.
+*/
 package zlog
 
 import (

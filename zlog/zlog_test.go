@@ -115,6 +115,58 @@ func TestCheckTail(t *testing.T) {
     conn.Shutdown()
 }
 
+func TestCheckTailBatch(t *testing.T) {
+    conn, _ := rados.NewConn()
+    conn.ReadDefaultConfigFile()
+    conn.Connect()
+
+    poolname := GetUUID()
+    err := conn.MakePool(poolname)
+    assert.NoError(t, err)
+
+    pool, err := conn.OpenIOContext(poolname)
+    assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    pos, err := log.CheckTail(false)
+    assert.NoError(t, err)
+    assert.Equal(t, pos, uint64(0))
+
+    pos2 := make([]uint64, 50)
+
+    err = log.CheckTailBatch(pos2[:1])
+    assert.NoError(t, err)
+    assert.Equal(t, pos2[0], uint64(1))
+
+    err = log.CheckTailBatch(pos2[:5])
+    assert.NoError(t, err)
+    assert.Equal(t, pos2[0], uint64(2))
+    assert.Equal(t, pos2[1], uint64(3))
+    assert.Equal(t, pos2[2], uint64(4))
+    assert.Equal(t, pos2[3], uint64(5))
+    assert.Equal(t, pos2[4], uint64(6))
+
+    pos, err = log.CheckTail(false)
+    assert.NoError(t, err)
+    assert.Equal(t, pos, uint64(6))
+
+    pos, err = log.CheckTail(true)
+    assert.NoError(t, err)
+    assert.Equal(t, pos, uint64(7))
+
+    err = log.CheckTailBatch(pos2[:2])
+    assert.NoError(t, err)
+    assert.Equal(t, pos2[0], uint64(8))
+    assert.Equal(t, pos2[1], uint64(9))
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
 func TestAppend(t *testing.T) {
 	conn, _ := rados.NewConn()
 	conn.ReadDefaultConfigFile()
