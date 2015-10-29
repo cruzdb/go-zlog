@@ -292,3 +292,40 @@ func TestRead(t *testing.T) {
     pool.Destroy()
     conn.Shutdown()
 }
+
+func TestMultiAppend(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    buf := make([]byte, 4096)
+
+    stream_ids := make([]uint64, 0)
+    _, err = log.MultiAppend(buf, stream_ids)
+    assert.Error(t, err)
+
+    stream_ids = make([]uint64, 2)
+    stream_ids[0] = 0
+    stream_ids[1] = 55
+    pos, err := log.MultiAppend(buf, stream_ids)
+    assert.NoError(t, err)
+
+    stream_ids_out, err := log.StreamMembership(pos)
+    assert.NoError(t, err)
+    assert.Equal(t, stream_ids, stream_ids_out)
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
