@@ -99,11 +99,11 @@ func TestCheckTail(t *testing.T) {
 
     pos, err = log.CheckTail(true)
     assert.NoError(t, err)
-    assert.Equal(t, pos, uint64(1))
+    assert.Equal(t, pos, uint64(0))
 
     pos, err = log.CheckTail(true)
     assert.NoError(t, err)
-    assert.Equal(t, pos, uint64(2))
+    assert.Equal(t, pos, uint64(1))
 
     pos, err = log.CheckTail(false)
     assert.NoError(t, err)
@@ -132,17 +132,17 @@ func TestAppend(t *testing.T) {
 
 	data := []byte("input data")
 
-    var last uint64 = 0
+    tail, err := log.CheckTail(false)
+    assert.NoError(t, err)
+
     for i := 0; i < 100; i++ {
         pos, err := log.Append(data)
         assert.NoError(t, err)
 
-        assert.True(t, pos > last)
-        last = pos
-
-        tail, err := log.CheckTail(false)
-        assert.NoError(t, err)
         assert.Equal(t, pos, tail)
+
+        tail, err = log.CheckTail(false)
+        assert.NoError(t, err)
     }
 
     log.Destroy()
