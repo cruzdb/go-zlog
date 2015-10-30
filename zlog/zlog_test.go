@@ -138,15 +138,15 @@ func TestCheckTailBatch(t *testing.T) {
 
     err = log.CheckTailBatch(pos2[:1])
     assert.NoError(t, err)
-    assert.Equal(t, pos2[0], uint64(1))
+    assert.Equal(t, pos2[0], uint64(0))
 
     err = log.CheckTailBatch(pos2[:5])
     assert.NoError(t, err)
-    assert.Equal(t, pos2[0], uint64(2))
-    assert.Equal(t, pos2[1], uint64(3))
-    assert.Equal(t, pos2[2], uint64(4))
-    assert.Equal(t, pos2[3], uint64(5))
-    assert.Equal(t, pos2[4], uint64(6))
+    assert.Equal(t, pos2[0], uint64(1))
+    assert.Equal(t, pos2[1], uint64(2))
+    assert.Equal(t, pos2[2], uint64(3))
+    assert.Equal(t, pos2[3], uint64(4))
+    assert.Equal(t, pos2[4], uint64(5))
 
     pos, err = log.CheckTail(false)
     assert.NoError(t, err)
@@ -154,12 +154,12 @@ func TestCheckTailBatch(t *testing.T) {
 
     pos, err = log.CheckTail(true)
     assert.NoError(t, err)
-    assert.Equal(t, pos, uint64(7))
+    assert.Equal(t, pos, uint64(6))
 
     err = log.CheckTailBatch(pos2[:2])
     assert.NoError(t, err)
-    assert.Equal(t, pos2[0], uint64(8))
-    assert.Equal(t, pos2[1], uint64(9))
+    assert.Equal(t, pos2[0], uint64(7))
+    assert.Equal(t, pos2[1], uint64(8))
 
     log.Destroy()
 
