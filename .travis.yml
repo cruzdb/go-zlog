@@ -7,4 +7,4 @@ before_install:
   - docker pull zlog/go-ci
 
 script:
-  - docker run -v $GOPATH/src/github.com/noahdesu/go-zlog:/src/go/src/github.com/noahdesu/go-zlog zlog/go-ci
+    - docker run -v $TRAVIS_BUILD_DIR:/src/go/src/github.com/noahdesu/go-zlog zlog/go-ci
