@@ -7,7 +7,7 @@ top of Ceph. More information about Zlog:
 * System Design: http://noahdesu.github.io/2014/10/26/corfu-on-ceph.html
 * Asynchronous API Design: http://noahdesu.github.io/2015/09/04/zlog-async-api.html
 
-[![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/noahdesu/go-zlog)
+[![Build Status](https://travis-ci.org/noahdesu/go-zlog.svg)](https://travis-ci.org/noahdesu/go-zlog) [![Godoc](http://img.shields.io/badge/godoc-reference-blue.svg?style=flat)](https://godoc.org/github.com/noahdesu/go-zlog)
 
 ## Dependencies
 
