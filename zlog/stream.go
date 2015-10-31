@@ -15,7 +15,7 @@ type Stream struct {
     stream C.zlog_stream_t
 }
 
-func OpenStream(log Log, id uint64) (*Stream, error) {
+func (log *Log) OpenStream(id uint64) (*Stream, error) {
     stream := &Stream{}
 
     ret := C.zlog_stream_open(C.zlog_log_t(log.log), C.uint64_t(id),
