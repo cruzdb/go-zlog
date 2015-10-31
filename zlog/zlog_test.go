@@ -115,6 +115,58 @@ func TestCheckTail(t *testing.T) {
     conn.Shutdown()
 }
 
+func TestCheckTailBatch(t *testing.T) {
+    conn, _ := rados.NewConn()
+    conn.ReadDefaultConfigFile()
+    conn.Connect()
+
+    poolname := GetUUID()
+    err := conn.MakePool(poolname)
+    assert.NoError(t, err)
+
+    pool, err := conn.OpenIOContext(poolname)
+    assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    pos, err := log.CheckTail(false)
+    assert.NoError(t, err)
+    assert.Equal(t, pos, uint64(0))
+
+    pos2 := make([]uint64, 50)
+
+    err = log.CheckTailBatch(pos2[:1])
+    assert.NoError(t, err)
+    assert.Equal(t, pos2[0], uint64(0))
+
+    err = log.CheckTailBatch(pos2[:5])
+    assert.NoError(t, err)
+    assert.Equal(t, pos2[0], uint64(1))
+    assert.Equal(t, pos2[1], uint64(2))
+    assert.Equal(t, pos2[2], uint64(3))
+    assert.Equal(t, pos2[3], uint64(4))
+    assert.Equal(t, pos2[4], uint64(5))
+
+    pos, err = log.CheckTail(false)
+    assert.NoError(t, err)
+    assert.Equal(t, pos, uint64(6))
+
+    pos, err = log.CheckTail(true)
+    assert.NoError(t, err)
+    assert.Equal(t, pos, uint64(6))
+
+    err = log.CheckTailBatch(pos2[:2])
+    assert.NoError(t, err)
+    assert.Equal(t, pos2[0], uint64(7))
+    assert.Equal(t, pos2[1], uint64(8))
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
 func TestAppend(t *testing.T) {
 	conn, _ := rados.NewConn()
 	conn.ReadDefaultConfigFile()
@@ -234,6 +286,125 @@ func TestRead(t *testing.T) {
     size, err = log.Read(pos, bytes_out)
     assert.Equal(t, size, len(bytes_in))
     assert.Equal(t, bytes_in, bytes_out)
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
+func TestMultiAppend(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    buf := make([]byte, 4096)
+
+    stream_ids := make([]uint64, 0)
+    _, err = log.MultiAppend(buf, stream_ids)
+    assert.Error(t, err)
+
+    stream_ids = make([]uint64, 2)
+    stream_ids[0] = 0
+    stream_ids[1] = 55
+    pos, err := log.MultiAppend(buf, stream_ids)
+    assert.NoError(t, err)
+
+    stream_ids_out, err := log.StreamMembership(pos)
+    assert.NoError(t, err)
+    assert.Equal(t, stream_ids, stream_ids_out)
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
+func TestStreamId(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    stream0, err := log.OpenStream(0)
+    assert.NoError(t, err)
+    assert.Equal(t, 0, int(stream0.Id()))
+
+    stream33, err := log.OpenStream(33)
+    assert.NoError(t, err)
+    assert.Equal(t, 33, int(stream33.Id()))
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
+func TestStreamAppend(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    stream, err := log.OpenStream(0)
+    assert.NoError(t, err)
+
+    data := make([]byte, 100)
+    pos1, err := stream.Append(data)
+    assert.NoError(t, err)
+
+    data_out := make([]byte, 200)
+    data_out_len, pos2, err := stream.ReadNext(data_out)
+    assert.Error(t, err)
+
+    err = stream.Sync()
+    assert.NoError(t, err)
+
+    data_out_len, pos2, err = stream.ReadNext(data_out)
+    assert.NoError(t, err)
+    assert.Equal(t, pos1, pos2)
+    assert.True(t, data_out_len > 0)
+    assert.Equal(t, data, data_out[:data_out_len])
+
+    data_out_len, pos2, err = stream.ReadNext(data_out)
+    assert.Error(t, err)
+
+    err = stream.Reset()
+    assert.NoError(t, err)
+
+    data_out_len, pos2, err = stream.ReadNext(data_out)
+    assert.NoError(t, err)
+    assert.Equal(t, pos1, pos2)
+    assert.True(t, data_out_len > 0)
+    assert.Equal(t, data, data_out[:data_out_len])
 
     log.Destroy()
 

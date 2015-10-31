@@ -108,6 +108,17 @@ func (log *Log) CheckTail(next bool) (uint64, error) {
 	}
 }
 
+func (log *Log) CheckTailBatch(positions []uint64) error {
+    ret := C.zlog_checktail_batch(C.zlog_log_t(log.log),
+        (*C.uint64_t)(unsafe.Pointer(&positions[0])),
+        (C.size_t)(len(positions)))
+	if ret == 0 {
+		return nil
+	} else {
+		return ZlogError(int(ret))
+	}
+}
+
 func (log *Log) Append(data []byte) (uint64, error) {
 	var c_position C.uint64_t
 
