@@ -329,3 +329,85 @@ func TestMultiAppend(t *testing.T) {
     pool.Destroy()
     conn.Shutdown()
 }
+
+func TestStreamId(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    stream0, err := log.OpenStream(0)
+    assert.NoError(t, err)
+    assert.Equal(t, 0, int(stream0.Id()))
+
+    stream33, err := log.OpenStream(33)
+    assert.NoError(t, err)
+    assert.Equal(t, 33, int(stream33.Id()))
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
+func TestStreamAppend(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    stream, err := log.OpenStream(0)
+    assert.NoError(t, err)
+
+    data := make([]byte, 100)
+    pos1, err := stream.Append(data)
+    assert.NoError(t, err)
+
+    data_out := make([]byte, 200)
+    data_out_len, pos2, err := stream.ReadNext(data_out)
+    assert.Error(t, err)
+
+    err = stream.Sync()
+    assert.NoError(t, err)
+
+    data_out_len, pos2, err = stream.ReadNext(data_out)
+    assert.NoError(t, err)
+    assert.Equal(t, pos1, pos2)
+    assert.True(t, data_out_len > 0)
+    assert.Equal(t, data, data_out[:data_out_len])
+
+    data_out_len, pos2, err = stream.ReadNext(data_out)
+    assert.Error(t, err)
+
+    err = stream.Reset()
+    assert.NoError(t, err)
+
+    data_out_len, pos2, err = stream.ReadNext(data_out)
+    assert.NoError(t, err)
+    assert.Equal(t, pos1, pos2)
+    assert.True(t, data_out_len > 0)
+    assert.Equal(t, data, data_out[:data_out_len])
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
