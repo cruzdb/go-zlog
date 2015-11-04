@@ -240,6 +240,50 @@ func TestFill(t *testing.T) {
     conn.Shutdown()
 }
 
+func TestTrim(t *testing.T) {
+	conn, _ := rados.NewConn()
+	conn.ReadDefaultConfigFile()
+	conn.Connect()
+
+	poolname := GetUUID()
+	err := conn.MakePool(poolname)
+	assert.NoError(t, err)
+
+	pool, err := conn.OpenIOContext(poolname)
+	assert.NoError(t, err)
+
+    log, err := zlog.Create(pool, "mylog", 5, "localhost", "5678")
+    assert.NoError(t, err)
+
+    // can trim empty spot
+    err = log.Trim(55)
+    assert.NoError(t, err)
+
+    // can trim filled spot
+    err = log.Fill(60)
+    assert.NoError(t, err)
+    err = log.Trim(60)
+    assert.NoError(t, err)
+
+    // can trim written spot
+    data := []byte("input data")
+    pos, err := log.Append(data)
+    assert.NoError(t, err)
+    err = log.Trim(pos)
+    assert.NoError(t, err)
+
+    // can trim trimmed spot
+    err = log.Trim(70)
+    assert.NoError(t, err)
+    err = log.Trim(70)
+    assert.NoError(t, err)
+
+    log.Destroy()
+
+    pool.Destroy()
+    conn.Shutdown()
+}
+
 func TestRead(t *testing.T) {
 	conn, _ := rados.NewConn()
 	conn.ReadDefaultConfigFile()
