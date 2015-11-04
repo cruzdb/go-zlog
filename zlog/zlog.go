@@ -157,3 +157,12 @@ func (log *Log) Fill(position uint64) error {
 		return ZlogError(int(ret))
 	}
 }
+
+func (log *Log) Trim(position uint64) error {
+	ret := C.zlog_trim(C.zlog_log_t(log.log), C.uint64_t(position))
+	if ret == 0 {
+		return nil
+	} else {
+		return ZlogError(int(ret))
+	}
+}
